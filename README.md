@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Age-19-brightgreen?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Education-B.Tech%20CSE-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Open%20Source-Contributor-4AB197?style=for-the-badge">  
   <img src="https://komarev.com/ghpvc/?username=Khizar-Hayath&color=blue&style=for-the-badge" />
 </p>
 
@@ -34,8 +34,6 @@
   <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" height="50" alt="ReactJS" />
   <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white" height="50" alt="NodeJs" />
   <img src="https://img.shields.io/badge/Git-DA100B?style=for-the-badge&logo=git&logoColor=white" height="50" alt="Git" />
-  <img src="https://img.shields.io/badge/NPM-000000?style=for-the-badge&logo=npm&logoColor=white" height="50" alt="NPM" />
-  <img src="https://img.shields.io/badge/Redux-593D88?style=for-the-badge&logo=redux&logoColor=white" height="50" alt="Redux Toolkit" />
 </p>
 
 <p align="center">
@@ -44,6 +42,7 @@
   <img src="https://img.shields.io/badge/LeetCode-000000?style=for-the-badge&logo=LeetCode&logoColor=D16C06" height="50" alt="LeetCode" />
   <img src="https://img.shields.io/badge/VS_Code-0078D7?style=for-the-badge&logo=visual-studio-code&logoColor=white" height="50" alt="VSCode" />
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" height="50" alt="Vite" />
+  <img src="https://img.shields.io/badge/Redux-593D88?style=for-the-badge&logo=redux&logoColor=white" height="50" alt="Redux Toolkit" />
 </p>
 
 <p align="center">
@@ -51,6 +50,7 @@
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" height="50" alt="Python" />
   <img src="https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white" height="50" alt="Postman" />
   <img src="https://img.shields.io/badge/EJS-B4CA65?style=for-the-badge&logo=ejs&logoColor=black" height="50" alt="EJS" />
+  <img src="https://img.shields.io/badge/NPM-000000?style=for-the-badge&logo=npm&logoColor=white" height="50" alt="NPM" />
 </p>
 
 ---
