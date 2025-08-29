@@ -104,12 +104,6 @@
   <img src="https://github-readme-activity-graph.vercel.app/graph?username=Khizar-Hayath&theme=react-dark&hide_border=true" />
 </p>
 
----
-
-## 🏆 Achievements & Trophies  
-<p align="center">
-  <img src="https://github-profile-trophy.vercel.app/?username=Khizar-Hayath&theme=onedark&margin-w=15&margin-h=15" />
-</p>
 
 ---
 
