@@ -12,6 +12,9 @@
   <img src="https://img.shields.io/badge/Education-B.Tech%20CSE-blue?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Open%20Source-Contributor-4AB197?style=for-the-badge">  
   <img src="https://komarev.com/ghpvc/?username=Khizar-Hayath&color=blue&style=for-the-badge" />
+  
+  ![Daily Unique Views](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Khizar-hayath/Khizar-hayath/main/.github/traffic.json&label=Daily%20Unique%20Views&query=$.total_daily_uniques_sum)
+
 </p>
 
 ---
