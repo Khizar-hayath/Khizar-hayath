@@ -1,15 +1,10 @@
-# A descriptive name for the workflow
 name: Track Profile Views
 
 on:
-  # Runs on a schedule (every day at 18:30 UTC / 00:00 IST)
   schedule:
     - cron: '30 18 * * *'
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# These are the permissions the GITHUB_TOKEN will have. 
-# 'contents: write' is required to fetch traffic data and push the updated JSON file.
 permissions:
   contents: write
 
@@ -17,15 +12,12 @@ jobs:
   update-views:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Check out your repository code so the workflow can access it
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Install jq, a tool for processing JSON data
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      # Step 3: Create the data file if it doesn't already exist
       - name: Initialize traffic.json if it does not exist
         run: |
           if [ ! -f .github/traffic.json ]; then
@@ -34,28 +26,22 @@ jobs:
             echo "Created initial .github/traffic.json"
           fi
 
-      # Step 4: Fetch the view data from GitHub's Traffic API
       - name: Fetch view data from GitHub API
         id: fetch_views
         env:
-          # This uses the required, built-in GITHUB_TOKEN. 
-          # The API specifically rejects Personal Access Tokens for this endpoint.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           API_URL="https://api.github.com/repos/${{ github.repository }}/traffic/views"
-          # Curl the API and capture the response body and HTTP code separately
           HTTP_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "$API_URL")
           HTTP_CODE=$(tail -n1 <<< "$HTTP_RESPONSE")
           VIEWS_JSON=$(sed '$ d' <<< "$HTTP_RESPONSE")
 
-          # Fail the job if the API call was not successful (e.g., a 403 error)
           if [ "$HTTP_CODE" -ne 200 ]; then
             echo "::error::Failed to fetch views from GitHub API. HTTP Code: $HTTP_CODE"
             echo "Response: $VIEWS_JSON"
             exit 1
           fi
 
-          # Handle the case where the API returns data but the 'views' array is empty (e.g., for new repos)
           if ! echo "$VIEWS_JSON" | jq -e '.views' >/dev/null 2>&1; then
             echo "::warning::API response does not contain 'views' array. No new data to process."
             echo "skip_update=true" >> $GITHUB_OUTPUT
@@ -65,18 +51,14 @@ jobs:
             echo "skip_update=false" >> $GITHUB_OUTPUT
           fi
 
-      # Step 5: Calculate the new total and update the JSON file
       - name: Calculate new uniques and update JSON
         if: steps.fetch_views.outputs.skip_update != 'true'
         run: |
           LAST_PROCESSED=$(jq -r '.last_processed' .github/traffic.json)
           VIEWS_JSON=$(cat /tmp/views.json)
-          # Sum only the 'uniques' from days newer than the last processed date
           NEW_UNIQUES=$(echo "$VIEWS_JSON" | jq --arg last "$LAST_PROCESSED" '[.views[] | select(.timestamp > $last) | .uniques] | add // 0')
-          # Find the newest timestamp in the data to avoid re-counting
           NEWEST_TIMESTAMP=$(echo "$VIEWS_JSON" | jq -r '[.views[] | .timestamp] | max // empty')
           
-          # Update the file with the new sum and last processed date
           TEMP_FILE=$(mktemp)
           if [ -z "$NEWEST_TIMESTAMP" ]; then
             jq ".total_daily_uniques_sum += ${NEW_UNIQUES}" .github/traffic.json > "$TEMP_FILE" && mv "$TEMP_FILE" .github/traffic.json
@@ -86,6 +68,16 @@ jobs:
           echo "Updated data file:"
           cat .github/traffic.json
 
-      # Step 6: Commit and push the updated JSON file back to the repository
       - name: Commit and push changes
-        if: steps.
+        if: steps.fetch_views.outputs.skip_update != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/traffic.json
+          
+          if git diff --staged --quiet; then
+            echo "No changes in view count to commit."
+          else
+            git commit -m "chore: Update profile view count"
+            git push
+          fi
