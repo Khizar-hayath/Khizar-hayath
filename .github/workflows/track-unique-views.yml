@@ -1,111 +1,97 @@
-name: Track Daily Unique Views
+name: Track Profile Views
 
 on:
   schedule:
-    - cron: '30 18 * * *'   # 18:30 UTC = 00:00 IST
+    - cron: '30 18 * * *'
   workflow_dispatch:
-
+  
 permissions:
   contents: write
 
 jobs:
-  update-uniques:
+  update-views:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (allows pushing back)
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: true
 
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      - name: Fetch views from GitHub Traffic API
+      - name: Initialize traffic.json if it does not exist
+        run: |
+          if [ ! -f .github/traffic.json ]; then
+            mkdir -p .github
+            echo '{"total_daily_uniques_sum": 0, "last_processed": "1970-01-01T00:00:00Z"}' > .github/traffic.json
+            echo "Created initial .github/traffic.json"
+          fi
+
+      - name: Fetch view data from GitHub API
+        id: fetch_views
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          REPO="${{ github.repository }}"
-          echo "Fetching traffic/views for $REPO"
-          # Fetch the views endpoint and save to a temp file (never expose token)
-          curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$REPO/traffic/views" -o /tmp/views.json || true
+          API_URL="https://api.github.com/repos/${{ github.repository }}/traffic/views"
+          # Fetch the API response and HTTP code separately to avoid errors
+          HTTP_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "$API_URL")
+          HTTP_CODE=$(tail -n1 <<< "$HTTP_RESPONSE")
+          VIEWS_JSON=$(sed '$ d' <<< "$HTTP_RESPONSE")
 
-          if [ -s /tmp/views.json ]; then
-            echo "/tmp/views.json created and non-empty"
-            # Print a short summary for logs (safe)
-            jq -r '. | "count:\(.count) uniques:\(.uniques) days:\(.views|length)"' /tmp/views.json || true
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::Failed to fetch views from GitHub API. HTTP Code: $HTTP_CODE"
+            echo "Response: $VIEWS_JSON"
+            exit 1
+          fi
+
+          # Check if the response contains a 'views' array. It might not if traffic is new.
+          if ! echo "$VIEWS_JSON" | jq -e '.views' >/dev/null 2>&1; then
+            echo "::warning::API response does not contain 'views' array. This can happen if there is no traffic data yet."
+            echo "skip_update=true" >> $GITHUB_OUTPUT
           else
-            echo "/tmp/views.json is missing or empty"
+            echo "API Response successfully fetched."
+            echo "$VIEWS_JSON" > /tmp/views.json
+            echo "skip_update=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Ensure .github/traffic.json exists
+      - name: Calculate new uniques and update JSON
+        if: steps.fetch_views.outputs.skip_update != 'true'
         run: |
-          mkdir -p .github
-          if [ ! -f .github/traffic.json ]; then
-            cat > .github/traffic.json <<'JSON'
-{
-  "total_daily_uniques_sum": 0,
-  "last_processed": "1970-01-01T00:00:00Z"
-}
-JSON
-            echo "Created initial .github/traffic.json"
-          else
-            echo ".github/traffic.json already exists"
-          fi
-          echo "Current .github/traffic.json:"
-          cat .github/traffic.json
-
-      - name: Compute new daily uniques and update file
-        run: |
-          LAST=$(jq -r '.last_processed' .github/traffic.json)
-          echo "Last processed: $LAST"
-
-          if [ ! -s /tmp/views.json ]; then
-            echo "No views data available in /tmp/views.json — exiting without update."
-            exit 0
-          fi
-
-          # Check the API returned a 'views' array
-          if ! jq -e '.views' /tmp/views.json >/dev/null 2>&1; then
-            echo "API response does not contain 'views' array. Response:"
-            cat /tmp/views.json
-            exit 0
-          fi
-
+          LAST_PROCESSED=$(jq -r '.last_processed' .github/traffic.json)
           VIEWS_JSON=$(cat /tmp/views.json)
+          
+          # Sum 'uniques' for days strictly after the last processed timestamp
+          NEW_UNIQUES=$(echo "$VIEWS_JSON" | jq --arg last "$LAST_PROCESSED" '[.views[] | select(.timestamp > $last) | .uniques] | add // 0')
+          
+          echo "Last processed timestamp: $LAST_PROCESSED"
+          echo "New unique views to add: $NEW_UNIQUES"
 
-          # Sum 'uniques' for days strictly after LAST
-          new_uniques=$(jq --arg last "$LAST" '[.views[] | select(.timestamp > $last) | .uniques] | add // 0' <<<"$VIEWS_JSON")
-          new_uniques=${new_uniques:-0}
-          echo "New uniques to add: $new_uniques"
-
-          # Determine newest timestamp in returned views (if any)
-          newest_ts=$(jq -r '[.views[] | .timestamp] | max // empty' <<<"$VIEWS_JSON")
-          if [ -z "$newest_ts" ]; then
-            NEW_LAST="$LAST"
+          # Determine the newest timestamp from the API response
+          NEWEST_TIMESTAMP=$(echo "$VIEWS_JSON" | jq -r '[.views[] | .timestamp] | max // empty')
+          
+          # Update the JSON file atomically
+          TEMP_FILE=$(mktemp)
+          if [ -z "$NEWEST_TIMESTAMP" ]; then
+            # If no new views, don't update the timestamp, just the sum (if any)
+            jq ".total_daily_uniques_sum += ${NEW_UNIQUES}" .github/traffic.json > "$TEMP_FILE" && mv "$TEMP_FILE" .github/traffic.json
           else
-            NEW_LAST="$newest_ts"
+            # If there are new views, update both the sum and the timestamp
+            jq ".total_daily_uniques_sum += ${NEW_UNIQUES} | .last_processed = \"$NEWEST_TIMESTAMP\"" .github/traffic.json > "$TEMP_FILE" .github/traffic.json
           fi
-          echo "New last_processed will be: $NEW_LAST"
 
-          # Atomically update .github/traffic.json
-          tmpfile=$(mktemp)
-          jq --argjson nu "$new_uniques" --arg newlast "$NEW_LAST" \
-            '.total_daily_uniques_sum += ($nu // 0) | .last_processed = $newlast' \
-            .github/traffic.json > "$tmpfile" && mv "$tmpfile" .github/traffic.json
-
-          echo "Updated .github/traffic.json:"
+          echo "Updated traffic file content:"
           cat .github/traffic.json
 
-      - name: Commit and push changes if any
+      - name: Commit and push changes
+        if: steps.fetch_views.outputs.skip_update != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/traffic.json
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
+          
+          # Commit and push only if there are actual changes to the file
+          if git diff --staged --quiet; then
+            echo "No changes in view count to commit."
           else
-            git commit -m "Update daily unique totals"
+            git commit -m "chore: Update profile view count"
             git push
           fi
