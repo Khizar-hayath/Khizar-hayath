@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '30 18 * * *'
   workflow_dispatch:
-  
+
 permissions:
   contents: write
 
@@ -29,10 +29,9 @@ jobs:
       - name: Fetch view data from GitHub API
         id: fetch_views
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           API_URL="https://api.github.com/repos/${{ github.repository }}/traffic/views"
-          # Fetch the API response and HTTP code separately to avoid errors
           HTTP_RESPONSE=$(curl -s -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "$API_URL")
           HTTP_CODE=$(tail -n1 <<< "$HTTP_RESPONSE")
           VIEWS_JSON=$(sed '$ d' <<< "$HTTP_RESPONSE")
@@ -43,7 +42,6 @@ jobs:
             exit 1
           fi
 
-          # Check if the response contains a 'views' array. It might not if traffic is new.
           if ! echo "$VIEWS_JSON" | jq -e '.views' >/dev/null 2>&1; then
             echo "::warning::API response does not contain 'views' array. This can happen if there is no traffic data yet."
             echo "skip_update=true" >> $GITHUB_OUTPUT
@@ -59,23 +57,18 @@ jobs:
           LAST_PROCESSED=$(jq -r '.last_processed' .github/traffic.json)
           VIEWS_JSON=$(cat /tmp/views.json)
           
-          # Sum 'uniques' for days strictly after the last processed timestamp
           NEW_UNIQUES=$(echo "$VIEWS_JSON" | jq --arg last "$LAST_PROCESSED" '[.views[] | select(.timestamp > $last) | .uniques] | add // 0')
           
           echo "Last processed timestamp: $LAST_PROCESSED"
           echo "New unique views to add: $NEW_UNIQUES"
 
-          # Determine the newest timestamp from the API response
           NEWEST_TIMESTAMP=$(echo "$VIEWS_JSON" | jq -r '[.views[] | .timestamp] | max // empty')
           
-          # Update the JSON file atomically
           TEMP_FILE=$(mktemp)
           if [ -z "$NEWEST_TIMESTAMP" ]; then
-            # If no new views, don't update the timestamp, just the sum (if any)
             jq ".total_daily_uniques_sum += ${NEW_UNIQUES}" .github/traffic.json > "$TEMP_FILE" && mv "$TEMP_FILE" .github/traffic.json
           else
-            # If there are new views, update both the sum and the timestamp
-            jq ".total_daily_uniques_sum += ${NEW_UNIQUES} | .last_processed = \"$NEWEST_TIMESTAMP\"" .github/traffic.json > "$TEMP_FILE" .github/traffic.json
+            jq ".total_daily_uniques_sum += ${NEW_UNIQUES} | .last_processed = \"$NEWEST_TIMESTAMP\"" .github/traffic.json > "$TEMP_FILE" && mv "$TEMP_FILE" .github/traffic.json
           fi
 
           echo "Updated traffic file content:"
@@ -88,7 +81,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/traffic.json
           
-          # Commit and push only if there are actual changes to the file
           if git diff --staged --quiet; then
             echo "No changes in view count to commit."
           else
