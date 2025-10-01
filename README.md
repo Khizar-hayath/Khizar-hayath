@@ -95,13 +95,26 @@
 
 ## 📊 GitHub Analytics  
 
-<p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=Khizar-Hayath&show_icons=true&theme=tokyonight&hide_border=true" width="48%" />
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Khizar-Hayath&layout=compact&theme=tokyonight&hide_border=true" width="48%" />
+<p align="center"><img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=Khizar-hayath&theme=github_dark&hide_border=true" width="100%" /></p>
+
+<p align="center"> 
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/repos-per-language?username=Khizar-hayath&theme=github_dark&hide_border=true" width="33%"/>
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/most-commit-language?username=Khizar-hayath&theme=github_dark&hide_border=true" width="33%"/>
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/stats?username=Khizar-hayath&theme=github_dark&hide_border=true" width="33%"/>
 </p>
 
 <p align="center">
-  <img src="https://github-readme-streak-stats.herokuapp.com?user=Khizar-Hayath&theme=tokyonight&hide_border=true" width="48%" />
+  <img src="https://github-readme-streak-stats.herokuapp.com?user=Khizar-Hayath&theme=tokyonight&hide_border=true" height="48%" />
+  <img src="https://github-readme-stats.vercel.app/api?username=Khizar-Hayath&show_icons=true&theme=tokyonight&hide_border=true" width="46%" />
+</p>
+
+
+<p>
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Khizar-Hayath&layout=compact&theme=tokyonight&hide_border=true" width="47%" />
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/productive-time?username=Khizar-hayath&theme=github_dark&hide_border=true" width="44%"/>
+</p>
+
+<p align="center">
   <img src="https://github-readme-activity-graph.vercel.app/graph?username=Khizar-Hayath&theme=react-dark&hide_border=true" />
 </p>
 
